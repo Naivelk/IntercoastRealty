@@ -566,6 +566,20 @@ footer {
 }
 .footer-brand { font-size: 15px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
 .footer-brand span { color: var(--gold-light); }
+.footer-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  opacity: 0.65;
+}
+.footer-logo img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 10px 24px rgba(0,0,0,0.35));
+}
 .footer-legal { font-size: 11px; color: rgba(255,255,255,0.3); line-height: 1.7; max-width: 560px; text-align: right; }
 
 /* ── FLOATING WHATSAPP (MOBILE) ── */
