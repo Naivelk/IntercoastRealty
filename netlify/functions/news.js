@@ -9,7 +9,7 @@ export default async (request, context) => {
       query,
       mode: 'ArtList',
       format: 'json',
-      maxrecords: '30',
+      maxrecords: '80',
       sort: 'HybridRel',
       timelast: '2592000'
     });
@@ -28,12 +28,6 @@ export default async (request, context) => {
 
     const data = await res.json();
     const articles = Array.isArray(data?.articles) ? data.articles : [];
-
-    const keywordAllow = [
-      'cruise', 'crucero', 'port', 'puerto', 'tourism', 'turismo', 'visitor', 'visitantes',
-      'airport', 'aeropuerto', 'investment', 'inversi', 'development', 'desarrollo',
-      'la libertad', 'surf', 'hotel', 'hospitality', 'travel', 'viaje', 'arrivals', 'llegada'
-    ];
     const keywordBlock = [
       'murder', 'homicid', 'kidnap', 'secuest', 'shoot', 'tirote', 'drug', 'narc', 'gang', 'pandill',
       'politic', 'polític', 'election', 'elecci', 'corruption', 'corrup', 'violence', 'violenc'
@@ -66,12 +60,16 @@ export default async (request, context) => {
       };
     }).filter(item => {
       const text = `${item.titleEs} ${item.summaryEs}`;
-      const allowed = containsAny(text, keywordAllow);
       const blocked = containsAny(text, keywordBlock);
-      return Boolean(item.url) && allowed && !blocked;
-    }).slice(0, 3);
+      return Boolean(item.url) && !blocked;
+    });
 
-    return new Response(JSON.stringify({ items: mapped }), {
+    const withImages = mapped.filter(i => Boolean(i.image && String(i.image).trim().length));
+    const withoutImages = mapped.filter(i => !(i.image && String(i.image).trim().length));
+    const selected = withImages.slice(0, 3);
+    if (selected.length < 3) selected.push(...withoutImages.slice(0, 3 - selected.length));
+
+    return new Response(JSON.stringify({ items: selected }), {
       status: 200,
       headers: {
         'content-type': 'application/json; charset=utf-8',

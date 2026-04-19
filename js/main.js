@@ -142,6 +142,11 @@ document.addEventListener('DOMContentLoaded', function () {
     return `https://source.unsplash.com/1200x800/?${encodeURIComponent(query)}`;
   }
 
+  function getPicsumFallback(seed) {
+    const s = String(seed || 'el-salvador').trim() || 'el-salvador';
+    return `https://picsum.photos/seed/${encodeURIComponent(s)}/1200/800`;
+  }
+
   function getCardContent(item) {
     const isEn = document.body.classList.contains('en');
     return {
@@ -163,7 +168,9 @@ document.addEventListener('DOMContentLoaded', function () {
       const link = item.url && String(item.url).trim().length > 0 ? String(item.url).trim() : '';
       const href = link || `https://news.google.com/search?q=${encodeURIComponent(c.title)}`;
       const img = item.image && String(item.image).trim().length > 0 ? String(item.image).trim() : '';
-      const fallbackImg = getUnsplashFallback(c.category);
+      const categoryForImage = (c.category && c.category.toLowerCase() !== 'actualidad' && c.category.toLowerCase() !== 'update') ? c.category : (item.categoryEs || item.categoryEn || c.category);
+      const fallbackImg = getUnsplashFallback(categoryForImage);
+      const fallbackImg2 = getPicsumFallback(c.title);
       const dateLabel = formatDate(item.date);
       const summary = truncate(c.summary, 160);
 
@@ -177,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
               alt=""
               loading="lazy"
               decoding="async"
-              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='${escapeHtml(fallbackImg)}';}else{this.style.display='none';}"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='${escapeHtml(fallbackImg)}';}else if(!this.dataset.fallback2){this.dataset.fallback2='1';this.src='${escapeHtml(fallbackImg2)}';}else{this.style.display='none';}"
             />
           </div>
           <div class="news-content">
