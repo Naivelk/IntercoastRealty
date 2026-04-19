@@ -126,6 +126,22 @@ document.addEventListener('DOMContentLoaded', function () {
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' });
   }
 
+  function truncate(text, maxLen) {
+    const t = String(text || '').trim();
+    if (!t) return '';
+    if (t.length <= maxLen) return t;
+    return `${t.slice(0, maxLen).trim()}…`;
+  }
+
+  function getUnsplashFallback(category) {
+    const c = String(category || '').toLowerCase();
+    let query = 'el salvador,travel';
+    if (c.includes('tour') || c.includes('turis') || c.includes('cruise') || c.includes('cruc')) query = 'el salvador,port,tourism,culture';
+    else if (c.includes('infra') || c.includes('airport') || c.includes('road') || c.includes('connect')) query = 'el salvador,city,infrastructure,road';
+    else if (c.includes('market') || c.includes('merc') || c.includes('investment') || c.includes('invers')) query = 'el salvador,city,investment,growth';
+    return `https://source.unsplash.com/1200x800/?${encodeURIComponent(query)}`;
+  }
+
   function getCardContent(item) {
     const isEn = document.body.classList.contains('en');
     return {
@@ -147,18 +163,26 @@ document.addEventListener('DOMContentLoaded', function () {
       const link = item.url && String(item.url).trim().length > 0 ? String(item.url).trim() : '';
       const href = link || 'https://wa.me/17146121383?text=Hola%20Celina%2C%20vi%20una%20actualizaci%C3%B3n%20sobre%20El%20Salvador%20y%20quiero%20hablar%20de%20oportunidades%20para%20invertir.';
       const img = item.image && String(item.image).trim().length > 0 ? String(item.image).trim() : '';
+      const fallbackImg = getUnsplashFallback(c.category);
       const dateLabel = formatDate(item.date);
+      const summary = truncate(c.summary, 160);
 
       return `
         <article class="news-card fade-up" style="transition-delay:${idx * 0.1}s">
           <div class="news-media">
             <span class="news-tag">${escapeHtml(c.category)}</span>
             <span class="news-date">${escapeHtml(dateLabel)}</span>
-            ${img ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" onerror="this.remove()" />` : ''}
+            <img
+              src="${escapeHtml(img || fallbackImg)}"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='${escapeHtml(fallbackImg)}';}else{this.remove();}"
+            />
           </div>
           <div class="news-content">
             <h3 class="news-title">${escapeHtml(c.title)}</h3>
-            <p class="news-desc">${escapeHtml(c.summary)}</p>
+            <p class="news-desc">${escapeHtml(summary)}</p>
             <div class="news-actions">
               <a class="news-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">
                 <span>${escapeHtml(c.cta)}</span>
