@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
       category: isEn ? item.categoryEn : item.categoryEs,
       title: isEn ? item.titleEn : item.titleEs,
       summary: isEn ? item.summaryEn : item.summaryEs,
-      cta: isEn ? 'Read more' : 'Ver noticia',
+      cta: isEn ? 'Open article' : 'Ver artículo',
       sourceLabel: item.source || (isEn ? 'Update' : 'Actualización')
     };
   }
@@ -190,7 +190,8 @@ document.addEventListener('DOMContentLoaded', function () {
     newsGrid.innerHTML = safeItems.map((item, idx) => {
       const c = getCardContent(item);
       const link = item.url && String(item.url).trim().length > 0 ? String(item.url).trim() : '';
-      const href = link || `https://news.google.com/search?q=${encodeURIComponent(c.title)}`;
+      const href = link || '#updates';
+      const disabledClass = link ? '' : ' is-disabled';
       const img = item.image && String(item.image).trim().length > 0 ? String(item.image).trim() : '';
       const categoryForImage = (c.category && c.category.toLowerCase() !== 'actualidad' && c.category.toLowerCase() !== 'update') ? c.category : (item.categoryEs || item.categoryEn || c.category);
       const fallbackImg = getUnsplashFallback(categoryForImage);
@@ -216,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <h3 class="news-title">${escapeHtml(c.title)}</h3>
             <p class="news-desc">${escapeHtml(summary)}</p>
             <div class="news-actions">
-              <a class="news-link" href="${escapeHtml(href)}" target="_blank" rel="noopener">
+              <a class="news-link${disabledClass}" href="${escapeHtml(href)}" ${link ? 'target="_blank" rel="noopener"' : 'aria-disabled="true" tabindex="-1"'}>
                 <span>${escapeHtml(c.cta)}</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M7 17L17 7" />

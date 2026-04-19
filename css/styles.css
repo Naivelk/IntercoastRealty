@@ -610,6 +610,15 @@ nav.scrolled {
   background: rgba(201,149,42,0.10);
   border-color: rgba(201,149,42,0.28);
 }
+.news-link.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.news-link.is-disabled:hover {
+  transform: none;
+  background: rgba(255,255,255,0.55);
+  border-color: rgba(11,28,46,0.12);
+}
 .news-link svg { width: 16px; height: 16px; }
 .news-source {
   font-size: 11px;
