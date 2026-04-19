@@ -77,6 +77,29 @@ export default async (request, context) => {
         .trim();
     };
 
+    const removeDiacritics = (s) => {
+      return String(s || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    };
+
+    const normalizeHint = (s) => {
+      return removeDiacritics(String(s || ''))
+        .toLowerCase()
+        .replace(/[^a-z0-9\s.]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const splitTitleAndPublisher = (title) => {
+      const raw = String(title || '').trim();
+      const parts = raw.split(' - ').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        return { baseTitle: parts.slice(0, -1).join(' - '), publisher: parts[parts.length - 1] };
+      }
+      return { baseTitle: raw, publisher: '' };
+    };
+
     const titleKey = (s) => {
       const n = normalizeText(s);
       return n.split(' ').slice(0, 12).join(' ');
@@ -88,6 +111,17 @@ export default async (request, context) => {
       } catch {
         return '';
       }
+    };
+
+    const tokenScore = (a, b) => {
+      const stop = new Set(['el', 'la', 'los', 'las', 'de', 'del', 'y', 'en', 'a', 'un', 'una', 'con', 'por', 'para', 'al', 'the', 'and', 'of', 'to', 'in', 'on']);
+      const ta = removeDiacritics(normalizeText(a)).split(' ').filter(w => w && w.length > 2 && !stop.has(w));
+      const tb = new Set(removeDiacritics(normalizeText(b)).split(' ').filter(w => w && w.length > 2 && !stop.has(w)));
+      let score = 0;
+      for (const w of ta) {
+        if (tb.has(w)) score += 1;
+      }
+      return score;
     };
 
     const maybeEnrichWithGdeltImages = async (items) => {
@@ -125,6 +159,7 @@ export default async (request, context) => {
             title: t,
             key: titleKey(t),
             domain: dom,
+            domainHint: normalizeHint(dom),
             image: img,
             url: u
           };
@@ -133,14 +168,32 @@ export default async (request, context) => {
 
       const enriched = list.map(item => {
         if (item.image && String(item.image).trim().length) return item;
-        const dom = getDomainFromUrl(item.url);
-        const k = titleKey(item.titleEs || item.titleEn);
+        const rawTitle = item.titleEs || item.titleEn;
+        const { baseTitle, publisher } = splitTitleAndPublisher(rawTitle);
+        const publisherHint = normalizeHint(publisher);
 
-        const byDomain = dom ? gdelt.find(g => g.domain && g.domain.includes(dom)) : null;
-        const byTitle = gdelt.find(g => g.key && k && (g.key.includes(k) || k.includes(g.key)));
-        const match = byDomain || byTitle;
+        let candidates = gdelt;
+        if (publisherHint) {
+          const pubNoSpaces = publisherHint.replace(/\s+/g, '');
+          const narrowed = gdelt.filter(g => {
+            const d = String(g.domainHint || '').replace(/\s+/g, '');
+            return d.includes(pubNoSpaces) || pubNoSpaces.includes(d);
+          });
+          if (narrowed.length) candidates = narrowed;
+        }
 
-        return match ? { ...item, image: match.image } : item;
+        let best = null;
+        let bestScore = 0;
+        for (const c of candidates) {
+          const s = tokenScore(baseTitle, c.title);
+          if (s > bestScore) {
+            bestScore = s;
+            best = c;
+          }
+        }
+
+        if (best && bestScore >= 3) return { ...item, image: best.image };
+        return item;
       });
 
       return enriched;
