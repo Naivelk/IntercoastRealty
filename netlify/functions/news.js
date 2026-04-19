@@ -68,6 +68,84 @@ export default async (request, context) => {
       return { es: 'Actualidad', en: 'Update' };
     };
 
+    const normalizeText = (s) => {
+      return String(s || '')
+        .toLowerCase()
+        .replace(/\s*[-–—|•:]\s*/g, ' ')
+        .replace(/[^a-z0-9áéíóúüñ\s]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const titleKey = (s) => {
+      const n = normalizeText(s);
+      return n.split(' ').slice(0, 12).join(' ');
+    };
+
+    const getDomainFromUrl = (u) => {
+      try {
+        return new URL(String(u || '')).hostname.replace(/^www\./, '').toLowerCase();
+      } catch {
+        return '';
+      }
+    };
+
+    const maybeEnrichWithGdeltImages = async (items) => {
+      const list = Array.isArray(items) ? items : [];
+      if (!list.length) return list;
+      if (list.some(i => i.image && String(i.image).trim().length)) return list;
+
+      const query = [
+        'El Salvador',
+        '(tourism OR turismo OR cruise OR crucero OR port OR puerto OR airport OR aeropuerto OR investment OR inversion OR desarrollo OR development OR surf OR "La Libertad")'
+      ].join(' ');
+
+      const params = new URLSearchParams({
+        query,
+        mode: 'ArtList',
+        format: 'json',
+        maxrecords: '80',
+        sort: 'HybridRel',
+        timelast: '1209600'
+      });
+
+      const url = `https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`;
+      const res = await fetch(url);
+      if (!res.ok) return list;
+      const data = await res.json();
+      const articles = Array.isArray(data?.articles) ? data.articles : [];
+
+      const gdelt = articles
+        .map(a => {
+          const t = a?.title || '';
+          const u = a?.url || '';
+          const img = a?.socialimage || '';
+          const dom = (a?.domain || getDomainFromUrl(u) || '').toLowerCase();
+          return {
+            title: t,
+            key: titleKey(t),
+            domain: dom,
+            image: img,
+            url: u
+          };
+        })
+        .filter(a => Boolean(a.image && String(a.image).trim().length));
+
+      const enriched = list.map(item => {
+        if (item.image && String(item.image).trim().length) return item;
+        const dom = getDomainFromUrl(item.url);
+        const k = titleKey(item.titleEs || item.titleEn);
+
+        const byDomain = dom ? gdelt.find(g => g.domain && g.domain.includes(dom)) : null;
+        const byTitle = gdelt.find(g => g.key && k && (g.key.includes(k) || k.includes(g.key)));
+        const match = byDomain || byTitle;
+
+        return match ? { ...item, image: match.image } : item;
+      });
+
+      return enriched;
+    };
+
     const parseRss = (xml) => {
       const items = [];
       const itemRegex = /<item>([\s\S]*?)<\/item>/g;
@@ -142,7 +220,8 @@ export default async (request, context) => {
         return Boolean(item.url) && !blocked;
       });
 
-      return mapped.slice(0, 3);
+      const top = mapped.slice(0, 3);
+      return await maybeEnrichWithGdeltImages(top);
     };
 
     const rssItems = await fetchGoogleNewsRss();
