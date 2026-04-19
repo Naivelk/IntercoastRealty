@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
       date: '2026-04-10',
       image: '',
       source: 'Actualización curada',
-      url: ''
+      url: 'https://news.google.com/search?q=crucero%20El%20Salvador%20turismo'
     },
     {
       categoryEs: 'Infraestructura',
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
       date: '2026-03-28',
       image: '',
       source: 'Actualización curada',
-      url: ''
+      url: 'https://news.google.com/search?q=infraestructura%20El%20Salvador%20conectividad'
     },
     {
       categoryEs: 'Mercado',
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
       date: '2026-03-12',
       image: '',
       source: 'Actualización curada',
-      url: ''
+      url: 'https://news.google.com/search?q=inversi%C3%B3n%20turismo%20El%20Salvador%20La%20Libertad'
     }
   ];
 
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
     newsGrid.innerHTML = safeItems.map((item, idx) => {
       const c = getCardContent(item);
       const link = item.url && String(item.url).trim().length > 0 ? String(item.url).trim() : '';
-      const href = link || 'https://wa.me/17146121383?text=Hola%20Celina%2C%20vi%20una%20actualizaci%C3%B3n%20sobre%20El%20Salvador%20y%20quiero%20hablar%20de%20oportunidades%20para%20invertir.';
+      const href = link || `https://news.google.com/search?q=${encodeURIComponent(c.title)}`;
       const img = item.image && String(item.image).trim().length > 0 ? String(item.image).trim() : '';
       const fallbackImg = getUnsplashFallback(c.category);
       const dateLabel = formatDate(item.date);
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
               alt=""
               loading="lazy"
               decoding="async"
-              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='${escapeHtml(fallbackImg)}';}else{this.remove();}"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='${escapeHtml(fallbackImg)}';}else{this.style.display='none';}"
             />
           </div>
           <div class="news-content">
@@ -266,7 +266,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!useLiveNews) return;
 
     try {
-      const live = await fetchGdeltNews();
+      let live = [];
+      try {
+        const proxyRes = await fetch('/.netlify/functions/news', { method: 'GET' });
+        if (proxyRes.ok) {
+          const proxyData = await proxyRes.json();
+          if (proxyData && Array.isArray(proxyData.items)) live = proxyData.items;
+        }
+      } catch (e) {
+        // ignore and fall back to direct client fetch
+      }
+
+      if (!live.length) live = await fetchGdeltNews();
       if (live && live.length) renderNews(live);
     } catch (e) {
       // Keep curated fallback
