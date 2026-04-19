@@ -10,6 +10,60 @@ export default async (request, context) => {
       return needles.some(n => h.includes(String(n).toLowerCase()));
     };
 
+    const decodeEntities = (s) => {
+      return String(s || '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&#x27;/g, "'")
+        .replace(/&nbsp;/g, ' ');
+    };
+
+    const stripHtml = (s) => {
+      const text = decodeEntities(String(s || '').replace(/<[^>]*>/g, ' '));
+      return text.replace(/\s+/g, ' ').trim();
+    };
+
+    const truncate = (s, maxLen) => {
+      const t = String(s || '').trim();
+      if (!t) return '';
+      if (t.length <= maxLen) return t;
+      return `${t.slice(0, Math.max(0, maxLen - 1)).trim()}…`;
+    };
+
+    const inferCategory = (text) => {
+      const t = String(text || '').toLowerCase();
+      const rules = [
+        {
+          es: 'Turismo',
+          en: 'Tourism',
+          keys: ['turismo', 'tourism', 'turista', 'turistas', 'crucero', 'cruise', 'playa', 'beach', 'hotel', 'aeropuerto', 'airport', 'surf']
+        },
+        {
+          es: 'Infraestructura',
+          en: 'Infrastructure',
+          keys: ['infraestructura', 'infrastructure', 'carretera', 'highway', 'puente', 'bridge', 'puerto', 'port', 'conectividad', 'connectivity', 'obra', 'obras']
+        },
+        {
+          es: 'Inversión',
+          en: 'Investment',
+          keys: ['inversi', 'investment', 'inversion', 'negocio', 'business', 'empresa', 'companies', 'capital', 'financi']
+        },
+        {
+          es: 'Mercado',
+          en: 'Market',
+          keys: ['mercado', 'market', 'export', 'import', 'comercio', 'trade', 'econom', 'gdp', 'crecimiento', 'growth']
+        }
+      ];
+
+      for (const r of rules) {
+        if (r.keys.some(k => t.includes(k))) return { es: r.es, en: r.en };
+      }
+      return { es: 'Actualidad', en: 'Update' };
+    };
+
     const parseRss = (xml) => {
       const items = [];
       const itemRegex = /<item>([\s\S]*?)<\/item>/g;
@@ -21,8 +75,16 @@ export default async (request, context) => {
           || '';
         const link = (block.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || '';
         const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || '';
+        const description = (block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || [])[1]
+          || (block.match(/<description>([\s\S]*?)<\/description>/) || [])[1]
+          || '';
         if (!title || !link) continue;
-        items.push({ title: title.trim(), link: link.trim(), pubDate: pubDate.trim() });
+        items.push({
+          title: title.trim(),
+          link: link.trim(),
+          pubDate: pubDate.trim(),
+          description: description.trim()
+        });
       }
       return items;
     };
@@ -46,20 +108,22 @@ export default async (request, context) => {
 
       const mapped = rawItems.map(it => {
         const date = toIsoDate(it.pubDate);
+        const snippet = truncate(stripHtml(it.description), 160);
+        const inferred = inferCategory(`${it.title} ${snippet}`);
         return {
-          categoryEs: 'Actualidad',
-          categoryEn: 'Update',
+          categoryEs: inferred.es,
+          categoryEn: inferred.en,
           titleEs: it.title,
           titleEn: it.title,
-          summaryEs: '',
-          summaryEn: '',
+          summaryEs: snippet,
+          summaryEn: snippet,
           date,
           image: '',
           source: 'Google News',
           url: it.link
         };
       }).filter(item => {
-        const blocked = containsAny(item.titleEs, keywordBlock);
+        const blocked = containsAny(`${item.titleEs} ${item.summaryEs}`, keywordBlock);
         return Boolean(item.url) && !blocked;
       });
 
