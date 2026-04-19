@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       let live = [];
       try {
-        const proxyRes = await fetch('/.netlify/functions/news', { method: 'GET' });
+        const proxyRes = await fetch(`/.netlify/functions/news?ts=${Date.now()}`, { method: 'GET', cache: 'no-store' });
         if (proxyRes.ok) {
           const proxyData = await proxyRes.json();
           if (proxyData && Array.isArray(proxyData.items)) live = proxyData.items;
@@ -291,6 +291,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  async function retryLiveNews() {
+    if (!newsGrid || !useLiveNews) return;
+    try {
+      const proxyRes = await fetch(`/.netlify/functions/news?ts=${Date.now()}`, { method: 'GET', cache: 'no-store' });
+      if (!proxyRes.ok) return;
+      const proxyData = await proxyRes.json();
+      if (proxyData && Array.isArray(proxyData.items) && proxyData.items.length) {
+        renderNews(proxyData.items);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
   initNews();
+  setTimeout(retryLiveNews, 1800);
 
 });
