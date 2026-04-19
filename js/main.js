@@ -61,6 +61,30 @@ document.addEventListener('DOMContentLoaded', function () {
   const newsGrid = document.getElementById('news-grid');
   const useLiveNews = true;
 
+  function renderNewsLoading() {
+    if (!newsGrid) return;
+    newsGrid.innerHTML = Array.from({ length: 3 }).map((_, idx) => {
+      return `
+        <article class="news-card fade-up news-loading" style="transition-delay:${idx * 0.1}s">
+          <div class="news-media">
+            <span class="news-tag">&nbsp;</span>
+            <span class="news-date">&nbsp;</span>
+          </div>
+          <div class="news-content">
+            <h3 class="news-title">&nbsp;</h3>
+            <p class="news-desc">&nbsp;</p>
+            <div class="news-actions">
+              <div class="news-link" style="pointer-events:none; opacity:0.6;"><span>&nbsp;</span></div>
+              <div class="news-source">&nbsp;</div>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    newsGrid.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  }
+
   const curatedNews = [
     {
       categoryEs: 'Turismo',
@@ -173,9 +197,10 @@ document.addEventListener('DOMContentLoaded', function () {
       const fallbackImg2 = getPicsumFallback(c.title);
       const dateLabel = formatDate(item.date);
       const summary = truncate(c.summary, 160);
+      const featuredClass = idx === 0 ? ' featured' : '';
 
       return `
-        <article class="news-card fade-up" style="transition-delay:${idx * 0.1}s">
+        <article class="news-card fade-up${featuredClass}" style="transition-delay:${idx * 0.1}s">
           <div class="news-media">
             <span class="news-tag">${escapeHtml(c.category)}</span>
             <span class="news-date">${escapeHtml(dateLabel)}</span>
@@ -268,9 +293,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function initNews() {
     if (!newsGrid) return;
-    renderNews(curatedNews);
+    renderNewsLoading();
 
     if (!useLiveNews) return;
+
+    let didRenderLive = false;
 
     try {
       let live = [];
@@ -285,9 +312,16 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       if (!live.length) live = await fetchGdeltNews();
-      if (live && live.length) renderNews(live);
+      if (live && live.length) {
+        renderNews(live);
+        didRenderLive = true;
+      }
     } catch (e) {
-      // Keep curated fallback
+      // ignore
+    }
+
+    if (!didRenderLive) {
+      renderNews(curatedNews);
     }
   }
 
