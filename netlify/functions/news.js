@@ -82,12 +82,23 @@ export default async (request, context) => {
         const description = (block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || [])[1]
           || (block.match(/<description>([\s\S]*?)<\/description>/) || [])[1]
           || '';
+        const mediaContentUrl = (block.match(/<media:content[^>]*?url="([^"]+)"[^>]*?>/i) || [])[1]
+          || (block.match(/<media:content[^>]*?url='([^']+)'[^>]*?>/i) || [])[1]
+          || '';
+        const mediaThumbUrl = (block.match(/<media:thumbnail[^>]*?url="([^"]+)"[^>]*?>/i) || [])[1]
+          || (block.match(/<media:thumbnail[^>]*?url='([^']+)'[^>]*?>/i) || [])[1]
+          || '';
+        const enclosureUrl = (block.match(/<enclosure[^>]*?url="([^"]+)"[^>]*?>/i) || [])[1]
+          || (block.match(/<enclosure[^>]*?url='([^']+)'[^>]*?>/i) || [])[1]
+          || '';
+        const image = mediaContentUrl || mediaThumbUrl || enclosureUrl || '';
         if (!title || !link) continue;
         items.push({
           title: title.trim(),
           link: link.trim(),
           pubDate: pubDate.trim(),
-          description: description.trim()
+          description: description.trim(),
+          image: image.trim()
         });
       }
       return items;
@@ -122,7 +133,7 @@ export default async (request, context) => {
           summaryEs: snippet,
           summaryEn: snippet,
           date,
-          image: '',
+          image: it.image || '',
           source: 'Google News',
           url: it.link
         };
