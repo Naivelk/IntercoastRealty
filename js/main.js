@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
       summaryEs: 'Visitantes internacionales, cultura y comercio en movimiento: señales pequeñas que muestran una nueva energía y oportunidad.',
       summaryEn: 'International visitors, culture, and commerce in motion: small signals that reflect new energy and opportunity.',
       date: '2026-04-10',
-      image: 'assets/prop-taquillo.jpg',
+      image: '',
       source: 'Actualización curada',
       url: ''
     },
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
       summaryEs: 'Nuevas obras y mejoras viales cambian la experiencia de moverse por zonas clave. Menos fricción para vivir, visitar e invertir.',
       summaryEn: 'New public works and road improvements are changing mobility in key areas—less friction to live, visit, and invest.',
       date: '2026-03-28',
-      image: 'assets/prop-terreno-beach.jpg',
+      image: '',
       source: 'Actualización curada',
       url: ''
     },
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
       summaryEs: 'La demanda por zonas turísticas impulsa movimiento económico. La clave es elegir con criterio y validar cada oportunidad.',
       summaryEn: 'Demand around tourism zones supports economic activity. The key is choosing with judgment and validating each opportunity.',
       date: '2026-03-12',
-      image: 'assets/prop-terreno-amatal.jpg',
+      image: '',
       source: 'Actualización curada',
       url: ''
     }
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <div class="news-media">
             <span class="news-tag">${escapeHtml(c.category)}</span>
             <span class="news-date">${escapeHtml(dateLabel)}</span>
-            ${img ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" />` : ''}
+            ${img ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" onerror="this.remove()" />` : ''}
           </div>
           <div class="news-content">
             <h3 class="news-title">${escapeHtml(c.title)}</h3>
