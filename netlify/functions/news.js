@@ -22,8 +22,12 @@ export default async (request, context) => {
     };
 
     const stripHtml = (s) => {
-      const text = decodeEntities(String(s || '').replace(/<[^>]*>/g, ' '));
-      return text.replace(/\s+/g, ' ').trim();
+      const decoded = decodeEntities(String(s || ''));
+      const withoutTags = decoded.replace(/<[^>]*>/g, ' ');
+      const cleaned = decodeEntities(withoutTags)
+        .replace(/\bhref\s*=\s*"[^"]*"/gi, ' ')
+        .replace(/\bhref\s*=\s*'[^']*'/gi, ' ');
+      return cleaned.replace(/\s+/g, ' ').trim();
     };
 
     const truncate = (s, maxLen) => {
